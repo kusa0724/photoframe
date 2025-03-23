@@ -22,35 +22,38 @@
     const frameImage = new Image();
     frameImage.src = './img/doudle_WINK_frame_A.png'; // 你設計好的四格透明相框
 
-    upload.addEventListener('change', function() {
-      const files = Array.from(this.files).slice(0, 4); // 最多4張
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+upload.addEventListener('change', function() {
+  const files = Array.from(this.files).slice(0, 4); // 限制最多4張相
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      let loaded = 0;
-      files.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = new Image();
-          img.onload = function() {
-            const x = (index % 2) * 400;
-            const y = Math.floor(index / 2) * 400;
-            ctx.drawImage(img, x, y, 400, 400);
-            loaded++;
-            if (loaded === files.length) {
-  // 🔥🔥🔥 相框保險寫法
-  if (frameImage.complete) {
-    ctx.drawImage(frameImage, 0, 0, 800, 800);
-  } else {
-    frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 800, 800);
-  }
-}
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+  let loaded = 0; // 記住有幾多張相已經 load 完
+
+  files.forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const x = (index % 2) * 400;
+        const y = Math.floor(index / 2) * 400;
+        ctx.drawImage(img, x, y, 400, 400);
+        loaded++; // 每畫完一張相，就加 1
+
+        if (loaded === files.length) {
+          // **當所有相片都畫完，先畫人生四格相框**
+          if (frameImage.complete) {
+            ctx.drawImage(frameImage, 0, 0, 800, 800);
+          } else {
+            frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 800, 800);
+          }
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
 
     function generateQRCode() {
       const imageData = canvas.toDataURL("image/png");
