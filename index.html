@@ -3,139 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📸 doudle studio 📸 畫博限定電子拍貼機</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <title>doudle studio 畫博限定電子拍貼機 - 自動連拍版</title>
   <style>
-    body {
-      text-align: center;
-      margin: 0;
-      padding: 0;
-      background-color: #fff;
-      font-family: Arial, sans-serif;
-    }
-    h1 {
-      font-size: 36px;
-      color: #333;
-      padding: 20px;
-      margin: 0;
-    }
-    #status {
-      font-size: 20px;
-      color: red;
-      margin-bottom: 15px;
-    }
-    #fourFrame {
-      max-width: 95vw;
-      height: auto;
-      cursor: pointer;
-      border: 1px solid #ccc;
-    }
-    #takePhotoBtn {
-      padding: 10px 20px;
-      font-size: 18px;
-      background-color: #ff6666;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    #takePhotoBtn:hover {
-      background-color: #ff3333;
-    }
+    body { text-align: center; background: #fff; font-family: Arial; }
+    h1 { font-size: 32px; padding: 20px; }
+    video, canvas { max-width: 95vw; border: 1px solid #ccc; }
+    #status { font-size: 24px; color: red; margin: 15px; }
+    #startBtn, #downloadBtn { padding: 10px 20px; font-size: 18px; background-color: #ff6666; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+    #startBtn:hover, #downloadBtn:hover { background-color: #ff3333; }
   </style>
 </head>
 
 <body>
-
   <h1>📸 doudle studio 📸<br>畫博限定電子拍貼機</h1>
 
-  <div id="status">請按下開始拍第一張</div>
+  <video id="video" autoplay playsinline></video><br>
+  <div id="status">請按下開始自動連拍</div>
+  <button id="startBtn">開始自動連拍</button><br><br>
 
-  <button id="takePhotoBtn">開始拍第一張</button><br><br>
+  <canvas id="canvas" width="1240" height="1844"></canvas><br><br>
 
-  <canvas id="fourFrame" width="1240" height="1844"></canvas><br><br>
-
-  <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
+  <button id="downloadBtn" style="display:none;">下載圖片</button>
 
   <script>
-    const canvas = document.getElementById('fourFrame');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const frameImage = new Image();
-    frameImage.src = './img/doudle_WINK_frame_A.png';
-    const fileInput = document.getElementById('fileInput');
-    const takePhotoBtn = document.getElementById('takePhotoBtn');
     const statusText = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const FRAME_SRC = './img/doudle_WINK_frame_A.png'; // 換成你相框路徑
 
-    const positions = [
-      { x: 70, y: 105, width: 460, height: 320 },
-      { x: 630, y: 105, width: 460, height: 320 },
-      { x: 70, y: 490, width: 460, height: 320 },
-      { x: 630, y: 490, width: 460, height: 320 },
-      { x: 70, y: 870, width: 460, height: 320 },
-      { x: 630, y: 870, width: 460, height: 320 },
-      { x: 70, y: 1255, width: 460, height: 320 },
-      { x: 630, y: 1255, width: 460, height: 320 },
-    ];
+    let stream;
+    let capturedImages = [];
+    const totalShots = 4;
+    const shotInterval = 8000; // 8秒
+    let frameImage = new Image();
 
-    let photoIndex = 0;
-    const capturedImages = [];
+    async function startCamera() {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      video.srcObject = stream;
+    }
 
-    // 預先畫框
-    window.onload = () => {
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-    };
+    function startAutoShoot() {
+      capturedImages = [];
+      let shotCount = 0;
+      statusText.innerText = '開始自動連拍，每張間隔8秒...';
+      const shotTimer = setInterval(() => {
+        shotCount++;
+        capturePhoto();
+        statusText.innerText = `已拍第 ${shotCount} 張`;
+        if (shotCount === totalShots) {
+          clearInterval(shotTimer);
+          statusText.innerText = '✅ 拍攝完成，生成中...';
+          setTimeout(() => generateFinalImage(), 1000);
+        }
+      }, shotInterval);
+    }
 
-    // 按鈕 或 點 Canvas 都可以拍
-    takePhotoBtn.addEventListener('click', () => {
-      fileInput.click();
-    });
-    canvas.addEventListener('click', () => {
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', function() {
-      const file = this.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          capturedImages.push(img);
-          photoIndex++;
-          statusText.innerText = `已拍 ${photoIndex} 張`;
-
-          if (photoIndex < 4) {
-            takePhotoBtn.innerText = `拍第 ${photoIndex + 1} 張`;
-          } else {
-            takePhotoBtn.style.display = 'none';
-            generateFinalImage();
-          }
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
+    function capturePhoto() {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(video, 0, 0);
+      const img = new Image();
+      img.src = tempCanvas.toDataURL("image/png");
+      capturedImages.push(img);
+    }
 
     function generateFinalImage() {
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 直接左右重複填滿
+      // 左右對稱重複排滿8格
+      const positions = [
+        { x: 70, y: 105, width: 460, height: 320 },
+        { x: 630, y: 105, width: 460, height: 320 },
+        { x: 70, y: 490, width: 460, height: 320 },
+        { x: 630, y: 490, width: 460, height: 320 },
+        { x: 70, y: 870, width: 460, height: 320 },
+        { x: 630, y: 870, width: 460, height: 320 },
+        { x: 70, y: 1255, width: 460, height: 320 },
+        { x: 630, y: 1255, width: 460, height: 320 },
+      ];
+
       for (let i = 0; i < 8; i++) {
-        const imgToDraw = capturedImages[i % 4];
+        const imgToDraw = capturedImages[i % capturedImages.length];
         const pos = positions[i];
         ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
       }
 
-      ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-      statusText.innerText = '✅ 成功完成！點相框可重新拍攝';
-      takePhotoBtn.style.display = 'inline-block';
-      takePhotoBtn.innerText = '重新開始拍攝';
-      photoIndex = 0;
-      capturedImages.length = 0;
+      frameImage.onload = () => {
+        ctx.drawImage(frameImage, 0, 0, 1240, 1844);
+        statusText.innerText = '✅ 完成！可下載圖片';
+        downloadBtn.style.display = 'inline-block';
+      };
+      frameImage.src = FRAME_SRC;
     }
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'photobooth.png';
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    startBtn.addEventListener('click', startAutoShoot);
+
+    startCamera();
   </script>
 </body>
 </html>
