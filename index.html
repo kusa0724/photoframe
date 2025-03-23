@@ -2,10 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>🎉 你成功啦！</title>
+  <title>📸 doudle studio 人生四格</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body style="text-align: center; padding-top: 100px;">
-  <h1 style="font-size: 50px;">🎉 你成功啦！！！ 🎉</h1>
-  <p style="font-size: 24px;">GitHub Pages 部署成功！</p>
+<body style="text-align:center; padding: 20px;">
+  <h1>📸 doudle studio 人生四格</h1>
+  <input type="file" accept="image/*" capture="environment" id="upload" multiple><br><br>
+  
+  <canvas id="fourFrame" width="800" height="800" style="border:1px solid #ccc;"></canvas><br><br>
+
+  <button onclick="generateQRCode()">生成 QR Code</button>
+  <div id="qrcode" style="margin-top:20px;"></div>
+
+  <script>
+    const canvas = document.getElementById('fourFrame');
+    const ctx = canvas.getContext('2d');
+    const upload = document.getElementById('upload');
+
+    const frameImage = new Image();
+    frameImage.src = './img/doudle_WINK_frame_A'; // 你設計好的四格透明相框
+
+    upload.addEventListener('change', function() {
+      const files = Array.from(this.files).slice(0, 4); // 最多4張
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      let loaded = 0;
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const x = (index % 2) * 400;
+            const y = Math.floor(index / 2) * 400;
+            ctx.drawImage(img, x, y, 400, 400);
+            loaded++;
+            if (loaded === files.length) {
+              // 全部圖片畫完後，畫上你的相框
+              frameImage.onload = () => {
+                ctx.drawImage(frameImage, 0, 0, 800, 800);
+              }
+              if (frameImage.complete) ctx.drawImage(frameImage, 0, 0, 800, 800);
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function generateQRCode() {
+      const imageData = canvas.toDataURL("image/png");
+      document.getElementById('qrcode').innerHTML = '';
+      new QRCode(document.getElementById('qrcode'), {
+        text: imageData,
+        width: 200,
+        height: 200
+      });
+    }
+  </script>
 </body>
 </html>
