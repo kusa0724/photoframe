@@ -2,25 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>📸 doudle studio 📸畫博限定電子拍貼機</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📸 doudle studio 📸 畫博限定電子拍貼機</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background-color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      font-size: 36px;
+      color: #333;
+      padding: 20px;
+      margin: 0;
+    }
+    #status {
+      font-size: 20px;
+      color: red;
+      margin-bottom: 15px;
+    }
+    #fourFrame {
+      max-width: 95vw;
+      height: auto;
+      cursor: pointer;
+      border: 1px solid #ccc;
+    }
+    #takePhotoBtn {
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: #ff6666;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #takePhotoBtn:hover {
+      background-color: #ff3333;
+    }
+  </style>
 </head>
-<body style="text-align:center; padding: 20px;">
 
-  <h1 style="font-size: 36px; color: #333; text-align: center; padding: 20px;">
-    📸 doudle studio 📸<br>畫博限定電子拍貼機
-  </h1>
+<body>
 
-  <canvas id="fourFrame" width="1240" height="1844" style="border:1px solid #ccc;"></canvas><br><br>
+  <h1>📸 doudle studio 📸<br>畫博限定電子拍貼機</h1>
 
-  <div id="status" style="font-size: 24px; color: red;">請按下開始拍第一張</div><br>
+  <div id="status">請按下開始拍第一張</div>
+
   <button id="takePhotoBtn">開始拍第一張</button><br><br>
 
-  <button onclick="generateQRCode()">生成 QR Code</button>
-  <div style="font-size: 18px; margin-top: 10px;">掃 QR Code 存相</div>
-  <div id="qrcode" style="margin-top:20px;"></div>
+  <canvas id="fourFrame" width="1240" height="1844"></canvas><br><br>
 
-  <!-- 拍照專用 input -->
   <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
 
   <script>
@@ -46,19 +80,21 @@
     let photoIndex = 0;
     const capturedImages = [];
 
-    // 預先畫相框
+    // 預先畫框
     window.onload = () => {
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
     };
 
-    // 拍照按鈕
+    // 按鈕 或 點 Canvas 都可以拍
     takePhotoBtn.addEventListener('click', () => {
       fileInput.click();
     });
+    canvas.addEventListener('click', () => {
+      fileInput.click();
+    });
 
-    // 每拍一張
     fileInput.addEventListener('change', function() {
       const file = this.files[0];
       if (!file) return;
@@ -82,12 +118,11 @@
       reader.readAsDataURL(file);
     });
 
-    // 完成後畫相
     function generateFinalImage() {
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 自動左右重複填滿8格
+      // 直接左右重複填滿
       for (let i = 0; i < 8; i++) {
         const imgToDraw = capturedImages[i % 4];
         const pos = positions[i];
@@ -95,18 +130,11 @@
       }
 
       ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-      statusText.innerText = '✅ 成功完成！';
-    }
-
-    // 生成QR Code
-    function generateQRCode() {
-      const imageData = canvas.toDataURL("image/png");
-      document.getElementById('qrcode').innerHTML = '';
-      new QRCode(document.getElementById('qrcode'), {
-        text: imageData,
-        width: 220,
-        height: 220
-      });
+      statusText.innerText = '✅ 成功完成！點相框可重新拍攝';
+      takePhotoBtn.style.display = 'inline-block';
+      takePhotoBtn.innerText = '重新開始拍攝';
+      photoIndex = 0;
+      capturedImages.length = 0;
     }
   </script>
 </body>
