@@ -7,114 +7,107 @@
 </head>
 <body style="text-align:center; padding: 20px;">
 
-<h1>📸 doudle studio 📸 畫博限定電子拍貼機</h1>
-
-<canvas id="fourFrame" width="1240" height="1844" style="border:1px solid #ccc;"></canvas><br><br>
-
-<!-- 提示 -->
-<div id="status" style="font-size: 24px; color: red;">請按下開始拍攝</div><br>
-
-<!-- 拍照按鈕 -->
-<button id="takePhotoBtn">開始拍第 1 張</button><br><br>
-
-<!-- QR區 -->
-<button onclick="generateQRCode()">生成 QR Code</button>
-<div style="font-size: 18px; margin-top: 10px;">掃 QR Code 存相</div>
-<div id="qrcode" style="margin-top:20px;"></div>
-
-<input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
-
-
-  <!-- Loading & 倒數提示 -->
-  <div id="status" style="font-size: 20px; color: red;">請選擇圖片</div>
-  <div id="countdown" style="font-size: 40px; color: green; margin-top: 20px;"></div>
+  <h1 style="font-size: 36px; color: #333; text-align: center; padding: 20px;">
+    📸 doudle studio 📸<br>畫博限定電子拍貼機
+  </h1>
 
   <canvas id="fourFrame" width="1240" height="1844" style="border:1px solid #ccc;"></canvas><br><br>
 
-  <button onclick="generateQRCode()">生成 QR Code</button>
+  <div id="status" style="font-size: 24px; color: red;">請按下開始拍第一張</div><br>
+  <button id="takePhotoBtn">開始拍第一張</button><br><br>
 
-  <!-- 加提示字 -->
+  <button onclick="generateQRCode()">生成 QR Code</button>
   <div style="font-size: 18px; margin-top: 10px;">掃 QR Code 存相</div>
   <div id="qrcode" style="margin-top:20px;"></div>
 
+  <!-- 拍照專用 input -->
+  <input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
+
   <script>
-  const canvas = document.getElementById('fourFrame');
-const ctx = canvas.getContext('2d');
-const frameImage = new Image();
-frameImage.src = './img/doudle_WINK_frame_A.png';
-const positions = [
-  { x: 70, y: 105, width: 460, height: 320 },
-  { x: 630, y: 105, width: 460, height: 320 },
-  { x: 70, y: 490, width: 460, height: 320 },
-  { x: 630, y: 490, width: 460, height: 320 },
-  { x: 70, y: 870, width: 460, height: 320 },
-  { x: 630, y: 870, width: 460, height: 320 },
-  { x: 70, y: 1255, width: 460, height: 320 },
-  { x: 630, y: 1255, width: 460, height: 320 },
-];
+    const canvas = document.getElementById('fourFrame');
+    const ctx = canvas.getContext('2d');
+    const frameImage = new Image();
+    frameImage.src = './img/doudle_WINK_frame_A.png';
+    const fileInput = document.getElementById('fileInput');
+    const takePhotoBtn = document.getElementById('takePhotoBtn');
+    const statusText = document.getElementById('status');
 
-let photoIndex = 0;
-const capturedImages = [];
+    const positions = [
+      { x: 70, y: 105, width: 460, height: 320 },
+      { x: 630, y: 105, width: 460, height: 320 },
+      { x: 70, y: 490, width: 460, height: 320 },
+      { x: 630, y: 490, width: 460, height: 320 },
+      { x: 70, y: 870, width: 460, height: 320 },
+      { x: 630, y: 870, width: 460, height: 320 },
+      { x: 70, y: 1255, width: 460, height: 320 },
+      { x: 630, y: 1255, width: 460, height: 320 },
+    ];
 
-window.onload = () => {
-  // 預先畫相框
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-}
+    let photoIndex = 0;
+    const capturedImages = [];
 
-document.getElementById('takePhotoBtn').addEventListener('click', () => {
-  document.getElementById('fileInput').click();
-});
-
-document.getElementById('fileInput').addEventListener('change', function() {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      capturedImages.push(img);
-      photoIndex++;
-      document.getElementById('status').innerText = `已拍 ${photoIndex} 張`;
-
-      if (photoIndex < 4) {
-        document.getElementById('takePhotoBtn').innerText = `拍第 ${photoIndex + 1} 張`;
-      } else {
-        document.getElementById('takePhotoBtn').style.display = 'none';
-        generateFinalImage();
-      }
+    // 預先畫相框
+    window.onload = () => {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
     };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-});
 
-function generateFinalImage() {
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 拍照按鈕
+    takePhotoBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
 
-  // 左右對稱重複排滿 8 格
-  for (let i = 0; i < 8; i++) {
-    const imgToDraw = capturedImages[i % 4];
-    const pos = positions[i];
-    ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
-  }
+    // 每拍一張
+    fileInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          capturedImages.push(img);
+          photoIndex++;
+          statusText.innerText = `已拍 ${photoIndex} 張`;
 
-  ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-  document.getElementById('status').innerText = '✅ 成功完成！';
-}
+          if (photoIndex < 4) {
+            takePhotoBtn.innerText = `拍第 ${photoIndex + 1} 張`;
+          } else {
+            takePhotoBtn.style.display = 'none';
+            generateFinalImage();
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
-function generateQRCode() {
-  const imageData = canvas.toDataURL("image/png");
-  document.getElementById('qrcode').innerHTML = '';
-  new QRCode(document.getElementById('qrcode'), {
-    text: imageData,
-    width: 220,
-    height: 220
-  });
-}
+    // 完成後畫相
+    function generateFinalImage() {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // 自動左右重複填滿8格
+      for (let i = 0; i < 8; i++) {
+        const imgToDraw = capturedImages[i % 4];
+        const pos = positions[i];
+        ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
+      }
+
+      ctx.drawImage(frameImage, 0, 0, 1240, 1844);
+      statusText.innerText = '✅ 成功完成！';
+    }
+
+    // 生成QR Code
+    function generateQRCode() {
+      const imageData = canvas.toDataURL("image/png");
+      document.getElementById('qrcode').innerHTML = '';
+      new QRCode(document.getElementById('qrcode'), {
+        text: imageData,
+        width: 220,
+        height: 220
+      });
+    }
   </script>
 </body>
 </html>
