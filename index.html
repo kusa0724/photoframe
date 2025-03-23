@@ -7,8 +7,23 @@
 </head>
 <body style="text-align:center; padding: 20px;">
 
-<h1>📸 doudle studio 📸畫博限定電子拍貼機</h1>
-<input type="file" accept="image/*" capture="environment" id="upload" multiple><br><br>
+<h1>📸 doudle studio 📸 畫博限定電子拍貼機</h1>
+
+<canvas id="fourFrame" width="1240" height="1844" style="border:1px solid #ccc;"></canvas><br><br>
+
+<!-- 提示 -->
+<div id="status" style="font-size: 24px; color: red;">請按下開始拍攝</div><br>
+
+<!-- 拍照按鈕 -->
+<button id="takePhotoBtn">開始拍第 1 張</button><br><br>
+
+<!-- QR區 -->
+<button onclick="generateQRCode()">生成 QR Code</button>
+<div style="font-size: 18px; margin-top: 10px;">掃 QR Code 存相</div>
+<div id="qrcode" style="margin-top:20px;"></div>
+
+<input type="file" accept="image/*" capture="environment" id="fileInput" style="display:none">
+
 
   <!-- Loading & 倒數提示 -->
   <div id="status" style="font-size: 20px; color: red;">請選擇圖片</div>
@@ -23,85 +38,83 @@
   <div id="qrcode" style="margin-top:20px;"></div>
 
   <script>
-    const canvas = document.getElementById('fourFrame');
-    const ctx = canvas.getContext('2d');
-    const upload = document.getElementById('upload');
-    const frameImage = new Image();
-    frameImage.src = './img/doudle_WINK_frame_A.png'; // 你框的路徑
+  const canvas = document.getElementById('fourFrame');
+const ctx = canvas.getContext('2d');
+const frameImage = new Image();
+frameImage.src = './img/doudle_WINK_frame_A.png';
+const positions = [
+  { x: 70, y: 105, width: 460, height: 320 },
+  { x: 630, y: 105, width: 460, height: 320 },
+  { x: 70, y: 490, width: 460, height: 320 },
+  { x: 630, y: 490, width: 460, height: 320 },
+  { x: 70, y: 870, width: 460, height: 320 },
+  { x: 630, y: 870, width: 460, height: 320 },
+  { x: 70, y: 1255, width: 460, height: 320 },
+  { x: 630, y: 1255, width: 460, height: 320 },
+];
 
-    const positions = [
-      { x: 70, y: 105, width: 460, height: 320 },
-      { x: 630, y: 105, width: 460, height: 320 },
-      { x: 70, y: 490, width: 460, height: 320 },
-      { x: 630, y: 490, width: 460, height: 320 },
-      { x: 70, y: 870, width: 460, height: 320 },
-      { x: 630, y: 870, width: 460, height: 320 },
-      { x: 70, y: 1255, width: 460, height: 320 },
-      { x: 630, y: 1255, width: 460, height: 320 },
-    ];
+let photoIndex = 0;
+const capturedImages = [];
 
-    upload.addEventListener('change', function() {
-      document.getElementById('status').innerText = '圖片加載中...';
-      document.getElementById('countdown').innerText = '';
-      const files = Array.from(this.files).slice(0, 4); // 只用4張相
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+window.onload = () => {
+  // 預先畫相框
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
+}
 
-      let loaded = 0;
-      const images = [];
+document.getElementById('takePhotoBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
 
-      files.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = new Image();
-          img.onload = function() {
-            images.push(img);
-            loaded++;
-            if (loaded === files.length) {
-              // ✅ 加倒數 3 秒
-              let countdownNum = 3;
-              const countdownElement = document.getElementById('countdown');
-              countdownElement.innerText = `📸 ${countdownNum}`;
-              const countdownInterval = setInterval(() => {
-                countdownNum--;
-                if (countdownNum > 0) {
-                  countdownElement.innerText = `📸 ${countdownNum}`;
-                } else {
-                  clearInterval(countdownInterval);
-                  countdownElement.innerText = '';
+document.getElementById('fileInput').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      capturedImages.push(img);
+      photoIndex++;
+      document.getElementById('status').innerText = `已拍 ${photoIndex} 張`;
 
-                  // 畫 8 格（重複使用4張相）
-                  for (let i = 0; i < 8; i++) {
-                    const imgToDraw = images[i % 4];
-                    const pos = positions[i];
-                    ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
-                  }
-                  // 畫相框
-                  if (frameImage.complete) {
-                    ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-                  } else {
-                    frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-                  }
-                  document.getElementById('status').innerText = '✅ 成功完成！';
-                }
-              }, 1000);
-            }
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    });
+      if (photoIndex < 4) {
+        document.getElementById('takePhotoBtn').innerText = `拍第 ${photoIndex + 1} 張`;
+      } else {
+        document.getElementById('takePhotoBtn').style.display = 'none';
+        generateFinalImage();
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
 
-    function generateQRCode() {
-      const imageData = canvas.toDataURL("image/png");
-      document.getElementById('qrcode').innerHTML = '';
-      new QRCode(document.getElementById('qrcode'), {
-        text: imageData,
-        width: 220,
-        height: 220
-      });
-    }
+function generateFinalImage() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 左右對稱重複排滿 8 格
+  for (let i = 0; i < 8; i++) {
+    const imgToDraw = capturedImages[i % 4];
+    const pos = positions[i];
+    ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
+  }
+
+  ctx.drawImage(frameImage, 0, 0, 1240, 1844);
+  document.getElementById('status').innerText = '✅ 成功完成！';
+}
+
+function generateQRCode() {
+  const imageData = canvas.toDataURL("image/png");
+  document.getElementById('qrcode').innerHTML = '';
+  new QRCode(document.getElementById('qrcode'), {
+    text: imageData,
+    width: 220,
+    height: 220
+  });
+}
+
   </script>
 </body>
 </html>
