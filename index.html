@@ -38,12 +38,13 @@
             ctx.drawImage(img, x, y, 400, 400);
             loaded++;
             if (loaded === files.length) {
-              // 全部圖片畫完後，畫上你的相框
-              frameImage.onload = () => {
-                ctx.drawImage(frameImage, 0, 0, 800, 800);
-              }
-              if (frameImage.complete) ctx.drawImage(frameImage, 0, 0, 800, 800);
-            }
+  // 🔥🔥🔥 相框保險寫法
+  if (frameImage.complete) {
+    ctx.drawImage(frameImage, 0, 0, 800, 800);
+  } else {
+    frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 800, 800);
+  }
+}
           };
           img.src = e.target.result;
         };
