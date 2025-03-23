@@ -2,84 +2,107 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>📸doudle studio 📸畫博限定電子拍貼機</title>
+  <title>📸 doudle studio 📸畫博限定電子拍貼機</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body style="text-align:center; padding: 20px;">
-  <h1>📸doudle studio 📸畫博限定電子拍貼機</h1>
-  <input type="file" accept="image/*" capture="environment" id="upload" multiple><br><br>
-  
-<canvas id="fourFrame" width="1240" height="1844" style="border:1px solid #ccc;"></canvas>
 
-  <button onclick="generateQRCode()">領取電子版拍貼</button>
+  <h1 style="font-size: 36px; color: #333; text-align: center; padding: 20px;">
+    📸 doudle studio 📸<br>畫博限定電子拍貼機
+  </h1>
+
+  <input type="file" accept="image/*" capture="environment" id="upload" multiple><br><br>
+
+  <!-- Loading & 倒數提示 -->
+  <div id="status" style="font-size: 20px; color: red;">請選擇圖片</div>
+  <div id="countdown" style="font-size: 40px; color: green; margin-top: 20px;"></div>
+
+  <canvas id="fourFrame" width="1240" height="1844" style="border:1px solid #ccc;"></canvas><br><br>
+
+  <button onclick="generateQRCode()">生成 QR Code</button>
+
+  <!-- 加提示字 -->
+  <div style="font-size: 18px; margin-top: 10px;">掃 QR Code 存相</div>
   <div id="qrcode" style="margin-top:20px;"></div>
 
   <script>
     const canvas = document.getElementById('fourFrame');
     const ctx = canvas.getContext('2d');
     const upload = document.getElementById('upload');
-
     const frameImage = new Image();
-    frameImage.src = './img/doudle_WINK_frame_A.png'; // 你設計好的四格透明相框
+    frameImage.src = './img/doudle_WINK_frame_A.png'; // 你框的路徑
 
-upload.addEventListener('change', function() {
-  const files = Array.from(this.files).slice(0, 4); // 限制最多4張相
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const positions = [
+      { x: 70, y: 105, width: 460, height: 320 },
+      { x: 630, y: 105, width: 460, height: 320 },
+      { x: 70, y: 490, width: 460, height: 320 },
+      { x: 630, y: 490, width: 460, height: 320 },
+      { x: 70, y: 870, width: 460, height: 320 },
+      { x: 630, y: 870, width: 460, height: 320 },
+      { x: 70, y: 1255, width: 460, height: 320 },
+      { x: 630, y: 1255, width: 460, height: 320 },
+    ];
 
-  let loaded = 0; // 記住有幾多張相已經 load 完
+    upload.addEventListener('change', function() {
+      document.getElementById('status').innerText = '圖片加載中...';
+      document.getElementById('countdown').innerText = '';
+      const files = Array.from(this.files).slice(0, 4); // 只用4張相
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-const positions = [
-  { x: 70, y: 105, width: 460, height: 320 },
-  { x: 630, y: 105, width: 460, height: 320 },
-  { x: 70, y: 490, width: 460, height: 320 },
-  { x: 630, y: 490, width: 460, height: 320 },
-  { x: 70, y: 870, width: 460, height: 320 },
-  { x: 630, y: 870, width: 460, height: 320 },
-  { x: 70, y: 1255, width: 460, height: 320 },
-  { x: 630, y: 1255, width: 460, height: 320 },
-];
+      let loaded = 0;
+      const images = [];
 
-let loaded = 0;
-const images = [];
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            images.push(img);
+            loaded++;
+            if (loaded === files.length) {
+              // ✅ 加倒數 3 秒
+              let countdownNum = 3;
+              const countdownElement = document.getElementById('countdown');
+              countdownElement.innerText = `📸 ${countdownNum}`;
+              const countdownInterval = setInterval(() => {
+                countdownNum--;
+                if (countdownNum > 0) {
+                  countdownElement.innerText = `📸 ${countdownNum}`;
+                } else {
+                  clearInterval(countdownInterval);
+                  countdownElement.innerText = '';
 
-files.forEach((file, index) => {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      images.push(img);
-      loaded++;
-      if (loaded === files.length) {
-        // 畫滿 8 格，但只用 4 張相，重複使用
-        for (let i = 0; i < 8; i++) {
-          const imgToDraw = images[i % 4]; // 重複使用
-          const pos = positions[i];
-          ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
-        }
-        // 全部畫完後加相框
-        if (frameImage.complete) {
-          ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-        } else {
-          frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
-        }
-      }
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-
-
+                  // 畫 8 格（重複使用4張相）
+                  for (let i = 0; i < 8; i++) {
+                    const imgToDraw = images[i % 4];
+                    const pos = positions[i];
+                    ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
+                  }
+                  // 畫相框
+                  if (frameImage.complete) {
+                    ctx.drawImage(frameImage, 0, 0, 1240, 1844);
+                  } else {
+                    frameImage.onload = () => ctx.drawImage(frameImage, 0, 0, 1240, 1844);
+                  }
+                  document.getElementById('status').innerText = '✅ 成功完成！';
+                }
+              }, 1000);
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
 
     function generateQRCode() {
       const imageData = canvas.toDataURL("image/png");
       document.getElementById('qrcode').innerHTML = '';
       new QRCode(document.getElementById('qrcode'), {
         text: imageData,
-        width: 200,
-        height: 200
+        width: 220,
+        height: 220
       });
     }
   </script>
