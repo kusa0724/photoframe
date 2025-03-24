@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>doudle studio 畫博限定電子拍貼機 - 自動連拍版</title>
+  <title>doudle studio 畫博限定電子拍貼機</title>
   <style>
     body { text-align: center; background: #fff; font-family: Arial; }
     h1 { font-size: 32px; padding: 20px; }
@@ -17,7 +17,7 @@
 <body>
   <h1>📸 doudle studio 📸<br>畫博限定電子拍貼機</h1>
 
-  <video id="video" autoplay playsinline></video><br>
+  <video id="video" autoplay playsinline muted></video><br>
   <div id="status">請按下開始自動連拍</div>
   <button id="startBtn">開始自動連拍</button><br><br>
 
@@ -32,33 +32,56 @@
     const statusText = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-    const FRAME_SRC = './img/doudle_WINK_frame_A.png'; // 換成你相框路徑
+    const FRAME_SRC = './img/doudle_WINK_frame_A.png'; // 你個相框路徑
 
     let stream;
     let capturedImages = [];
-    const totalShots = 4;
-    const shotInterval = 8000; // 8秒
+    const totalShots = 8;   // 8張
+    const shotInterval = 8000; // 每張間隔8秒
     let frameImage = new Image();
 
+    const positions = [
+      { x: 78, y: 120, width: 490, height: 330 },
+      { x: 668, y: 120, width: 490, height: 330 },
+      { x: 78, y: 482, width: 490, height: 330 },
+      { x: 668, y: 482, width: 490, height: 330 },
+      { x: 78, y: 842, width: 490, height: 330 },
+      { x: 668, y: 842, width: 490, height: 330 },
+      { x: 78, y: 1202, width: 490, height: 330 },
+      { x: 668, y: 1202, width: 490, height: 330 }
+    ];
+
     async function startCamera() {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
       video.srcObject = stream;
     }
 
     function startAutoShoot() {
       capturedImages = [];
       let shotCount = 0;
-      statusText.innerText = '開始自動連拍，每張間隔8秒...';
-      const shotTimer = setInterval(() => {
-        shotCount++;
-        capturePhoto();
-        statusText.innerText = `已拍第 ${shotCount} 張`;
-        if (shotCount === totalShots) {
-          clearInterval(shotTimer);
-          statusText.innerText = '✅ 拍攝完成，生成中...';
-          setTimeout(() => generateFinalImage(), 1000);
+      takeNextPhoto(shotCount);
+    }
+
+    function takeNextPhoto(count) {
+      if (count >= totalShots) {
+        statusText.innerText = '📥 正在處理照片...';
+        generateFinalImage();
+        return;
+      }
+
+      let countdown = 8;
+      statusText.innerText = `📸 倒數 ${countdown} 秒後拍第 ${count + 1} 張`;
+      const timer = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          statusText.innerText = `📸 倒數 ${countdown} 秒後拍第 ${count + 1} 張`;
+        } else {
+          clearInterval(timer);
+          capturePhoto();
+          statusText.innerText = `✅ 已完成第 ${count + 1} 張`;
+          setTimeout(() => takeNextPhoto(count + 1), 1000); // 1秒後進入下一張倒數
         }
-      }, shotInterval);
+      }, 1000);
     }
 
     function capturePhoto() {
@@ -76,24 +99,14 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 左右對稱重複排滿8格
-      const positions = [
-        { x: 70, y: 105, width: 460, height: 320 },
-        { x: 630, y: 105, width: 460, height: 320 },
-        { x: 70, y: 490, width: 460, height: 320 },
-        { x: 630, y: 490, width: 460, height: 320 },
-        { x: 70, y: 870, width: 460, height: 320 },
-        { x: 630, y: 870, width: 460, height: 320 },
-        { x: 70, y: 1255, width: 460, height: 320 },
-        { x: 630, y: 1255, width: 460, height: 320 },
-      ];
-
+      // 確保每張相對應格位
       for (let i = 0; i < 8; i++) {
-        const imgToDraw = capturedImages[i % capturedImages.length];
+        const imgToDraw = capturedImages[i];
         const pos = positions[i];
         ctx.drawImage(imgToDraw, pos.x, pos.y, pos.width, pos.height);
       }
 
+      // 加框
       frameImage.onload = () => {
         ctx.drawImage(frameImage, 0, 0, 1240, 1844);
         statusText.innerText = '✅ 完成！可下載圖片';
